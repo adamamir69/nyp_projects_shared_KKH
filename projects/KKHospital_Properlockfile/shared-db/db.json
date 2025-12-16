@@ -1,0 +1,61 @@
+{
+  "users": [
+    {
+      "username": "Admin",
+      "password": "$2b$10$9cYvbYxKfDZZjYwS1Vg18uqZPhJWHdhK/dgVTW8G7o.5AP0SO2N5a",
+      "role": "Administrator"
+    },
+    {
+      "username": "Nurse1",
+      "password": "$2b$10$CwDPVasEAhLG.MerGAzbq.K8T5s58W1cg3uM8kbvkI6PTRiFEHGBe",
+      "role": "User"
+    },
+    {
+      "username": "Nurse2",
+      "password": "$2b$10$k3wriSDE92EYj3b2L.Jk2.hA8JGz3rNFVYGPd2rzTmKZea6zprx5a",
+      "role": "User"
+    },
+    {
+      "username": "Admin2",
+      "password": "$2b$10$49vfdYPX1XFyW1klpi98LuAzpxihEzgDhQ6/FZYVRPQYroI2zZhGO",
+      "role": "Admin"
+    },
+    {
+      "username": "test",
+      "password": "$2b$10$IuWDkp0XE0Kxv08B2DT3hev4U9fUs7CrqniMECUcthjrzOPsKi7nG",
+      "role": "User"
+    },
+    {
+      "username": "test2",
+      "password": "$2b$10$aMjtHZZ/pMU.VrR42Tns5.0I1hPOsByH3uCAZL4LxbwjpB7IhZENS",
+      "role": "User"
+    },
+    {
+      "username": "test3",
+      "password": "$2b$10$/GEU3HzdPIZbjPiJD2Y1peX0dnarcTDFb3l8RtNKqAJOgbUcaF6NO",
+      "role": "Administrator"
+    },
+    {
+      "username": "test7",
+      "password": "$2b$10$g3S7f/NpW8ckD6mFI9LhF.6oU./jEBmmxu2InjYgBmBW1DdpQQ5Ei",
+      "role": "User"
+    },
+    {
+      "username": "test8",
+      "password": "$2b$10$hvxUmkyq.Qk1CG4DXvw.Yu4F87xjLFH5KRQiJh6oxef3LEvVQ4hxS",
+      "role": "Administrator"
+    },
+    {
+      "username": "Againtest",
+      "password": "$2b$10$0eiuwt99S69x3ryLBSXtVeCc56Ebu0qFV0GGIVh9.f5ibxe8ZeTBq",
+      "role": "Administrator"
+    },
+    {
+      "username": "test10",
+      "password": "$2b$10$GxxhUplXWE4Y0bzTAOygV.WZAQDLd5L8a8H0wqUrs/i9eIfY4biwG",
+      "role": "Administrator"
+    }
+  ],
+  "activeUser": "Admin",
+  "lastActivity": 1765867224805
+}
