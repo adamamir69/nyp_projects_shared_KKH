@@ -1,0 +1,12 @@
+{
+  "name": "nanyang_polytechnic_projects",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Infocomm Systems Project Module Group L1 Dev Offline FullStack Group 2025 Nanyang Polytechnic",
+  "description": "This is a file architecture that will contain future Nanyang Polytechnic projects for KKH that are to be hosted on their shared drive that is offline with the intent of reducing the number of total files through the use of npm workspaces by hoisting a version of the node modules used for the projects to the root which will reduce the number of instances of the node modules to mitigate the issues caused by the circumstance and hardware limitations",
+  "workspaces": [
+    "projects/**"
+  ],
+  "dependencies": {
+  }
+}
