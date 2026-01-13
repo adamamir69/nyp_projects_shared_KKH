@@ -5,10 +5,12 @@ shared drive of KKH to mitigate the issues derived from the scenario
 and hardware. 
 
 ## Quick Startup
-
-1. Make a copy of the directory of your project and place it into the projects folder of nyp_projects
-2. Ensure that the dependencies in pacakge.json specify the version numbers
-3. run ```npm install``` in the directory of nyp_projects
+1. Make a copy of the your project and place it into the projects folder of nyp_projects
+2. Open the file named package.json
+3. Ensure that the project name is unique
+4. Ensure that the dependencies in pacakge.json specify the version numbers
+5. Delete the contents of the folder named node_modules
+6. run ```npm install``` in the directory of nyp_projects
 
 ## Changing node module dependancy version
 
@@ -100,6 +102,7 @@ Ensure that the name in the package.json is unique.
 
 ### Project no longer functions after moving into nyp_projects
 Ensure that the dependencies within the package.json of your project contains version number.
+
 
 
 
