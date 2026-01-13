@@ -13,26 +13,32 @@ and hardware.
 ## Changing node module dependancy version
 
 1. Go into package.json and change the version number
-2. Delete the contents of the node_modules folder and the package-lock.json files
+2. Delete the contents of the node_modules folders and the package-lock.json files
+3. run ```npm install``` in the root directory of nyp_projects
+
+## Manually setting a common node module version
+
+1. Go into package.json of the root directory and change the version number
+2. Delete the contents of the node_modules folders and the package-lock.json files
 3. run ```npm install``` in the root directory of nyp_projects
 
 ## Directory structure
-nyp_projects/<br>
-├ -- node_modules/<br>
-│ ├ -- example_root_node_module/<br>
-│   ├ -- HISTORY.md<br>
-│   ├ -- index.js<br>
-│   ├ -- LICENSE<br>
-│   ├ -- package.json<br>
-│   ├ -- README.md<br>
-├ -- projects/<br>
-│   ├ -- example_project/<br>
-│     ├ -- node_modules/<br>
-│     ├ -- package.json<br>
-│     ├ -- README.md<br>
-├ -- package-lock.json<br>
-├ -- package.json<br>
-├ -- README.md<br>
+nyp_projects/
+├ -- node_modules/
+│ ├ -- example_root_node_module/
+│   ├ -- HISTORY.md
+│   ├ -- index.js
+│   ├ -- LICENSE
+│   ├ -- package.json
+│   ├ -- README.md
+├ -- projects/
+│   ├ -- example_project/
+│     ├ -- node_modules/
+│     ├ -- package.json
+│     ├ -- README.md
+├ -- package-lock.json
+├ -- package.json
+├ -- README.md
 
 
 ## Limitations
@@ -57,6 +63,27 @@ npm is many things.
 
 For the most part, the caret(^) accepts more versions than the tilde(~).
 
+### Conventions
+It is advised to use kebab-case or snake_case when naming your files and folders for Node.js. 
+
+The specifics of npm's package.json handling requires:
+
+    The name must be less than or equal to 214 characters. This includes the scope for scoped packages.
+
+    The names of scoped packages can begin with a dot or an underscore. This is not permitted without a scope.
+
+    New packages must not have uppercase letters in the name.
+
+    The name ends up being part of a URL, an argument on the command line, and a folder name. Therefore, the name can't contain any non-URL-safe characters.
+
+    Don't use the same name as a core Node module.
+
+    Don't put "js" or "node" in the name. It's assumed that it's js, since you're writing a package.json file, and you can specify the engine using the "engines" field. (See below.)
+
+    The name will probably be passed as an argument to require(), so it should be something short, but also reasonably descriptive.
+
+    You may want to check the npm registry to see if there's something by that name already, before you get too attached to it. https://www.npmjs.com/
+
 ## Troubleshooting
 
 ### npm error code EINVALIDPACKAGENAME
@@ -68,5 +95,4 @@ URL-friendly characters:
     Special characters, like $-_.+!*'(),
 
 ### Project no longer functions after moving into nyp_projects
-
 Ensure that the dependencies within the package.json of your project contains version number.
