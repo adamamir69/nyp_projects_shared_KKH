@@ -12,13 +12,13 @@ and hardware.
 
 ## Changing node module dependancy version
 
-1. Go into package.json and change the version number
+1. Go into package.json of the folder of your project and change the version number
 2. Delete the contents of the node_modules folders and the package-lock.json files
 3. run ```npm install``` in the directory of nyp_projects
 
 ## Manually setting a common node module version
 
-1. Go into package.json of the directory and change the version number
+1. Go into package.json of the nyp_projects directory and change the version number
 2. Delete the contents of the node_modules folders and the package-lock.json files
 3. run ```npm install``` in the directory of nyp_projects
 
@@ -100,5 +100,6 @@ Ensure that the name in the package.json is unique.
 
 ### Project no longer functions after moving into nyp_projects
 Ensure that the dependencies within the package.json of your project contains version number.
+
 
 
