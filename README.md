@@ -6,26 +6,26 @@ and hardware.
 
 ## Quick Startup
 
-1. Make a copy of the root directory of your project and place it into the projects folder of nyp_projects
+1. Make a copy of the directory of your project and place it into the projects folder of nyp_projects
 2. Ensure that the dependencies in pacakge.json specify the version numbers
-3. run ```npm install``` in the root directory of nyp_projects
+3. run ```npm install``` in the directory of nyp_projects
 
 ## Changing node module dependancy version
 
 1. Go into package.json and change the version number
 2. Delete the contents of the node_modules folders and the package-lock.json files
-3. run ```npm install``` in the root directory of nyp_projects
+3. run ```npm install``` in the directory of nyp_projects
 
 ## Manually setting a common node module version
 
-1. Go into package.json of the root directory and change the version number
+1. Go into package.json of the directory and change the version number
 2. Delete the contents of the node_modules folders and the package-lock.json files
-3. run ```npm install``` in the root directory of nyp_projects
+3. run ```npm install``` in the directory of nyp_projects
 
 ## Directory structure
 nyp_projects/<br>
 ├ -- node_modules/<br>
-│ ├ -- example_root_node_module/<br>
+│ ├ -- example_node_module/<br>
 │   ├ -- HISTORY.md<br>
 │   ├ -- index.js<br>
 │   ├ -- LICENSE<br>
@@ -44,8 +44,8 @@ nyp_projects/<br>
 ## Limitations
 
 - npm workspaces will only hoist a singular version of every node module into the directory
-- npm workspaces will not automatically change the version in the root directory regardless of how many projects use a different version
-- The root directory verison of a node module will be used unless the version is specified in your depdencies in your package.json for your project
+- npm workspaces will not automatically change the version in the directory regardless of how many projects use a different version
+- The directory verison of a node module will be used unless the version is specified in your depdencies in your package.json for your project
 - All folders within the nyp_projects folder must be named using URL-friendly characters exclusively, otherwise there will be an npm error
 
 ## More about certain things in npm that you might not know yet because you are a student and for some reason we are learning node, and by extension, npm in the same year as starting the project
@@ -94,6 +94,11 @@ URL-friendly characters:
     0 - 9
     Special characters, like $-_.+!*'(),
 
+### npm error code EINVALIDPACKAGENAME
+Your project has a similar name that is specified in the package.json file to another project in the projects folder.
+Ensure that the name in the package.json is unique.
+
 ### Project no longer functions after moving into nyp_projects
 Ensure that the dependencies within the package.json of your project contains version number.
+
 
