@@ -1,0 +1,339 @@
+{
+  "users": [
+    {
+      "username": "Admin",
+      "password": "$2b$10$9cYvbYxKfDZZjYwS1Vg18uqZPhJWHdhK/dgVTW8G7o.5AP0SO2N5a",
+      "role": "Administrator",
+      "status": "active"
+    },
+    {
+      "username": "Nurse1",
+      "password": "$2b$10$CwDPVasEAhLG.MerGAzbq.K8T5s58W1cg3uM8kbvkI6PTRiFEHGBe",
+      "role": "User",
+      "status": "active"
+    },
+    {
+      "username": "Nurse2",
+      "password": "$2b$10$k3wriSDE92EYj3b2L.Jk2.hA8JGz3rNFVYGPd2rzTmKZea6zprx5a",
+      "role": "User",
+      "status": "active"
+    },
+    {
+      "username": "Admin2",
+      "password": "$2b$10$49vfdYPX1XFyW1klpi98LuAzpxihEzgDhQ6/FZYVRPQYroI2zZhGO",
+      "role": "User",
+      "status": "active"
+    },
+    {
+      "username": "Xanthe",
+      "password": "$2b$10$GYVW5prmUWHiceXGuvhZT.kVQX57I7wX17J/avfX5CkT3SVYhB8Ii",
+      "role": "User",
+      "status": "active"
+    },
+    {
+      "username": "Thi",
+      "password": "$2b$10$70RsR1VLLphnWl95k8.ppeC69NXYVe8qPeCHLpHuYtxR/qucJPaAW",
+      "role": "User",
+      "status": "active",
+      "createdBy": "Nurse1"
+    },
+    {
+      "username": "test10",
+      "password": "$2b$10$td29HP/EuV9TOrUdvPhm.OtAPTLLBCgiXluJJmT9pBb.AvW48TrFC",
+      "role": "Administrator",
+      "status": "active",
+      "createdBy": "Admin"
+    },
+    {
+      "username": "testtest",
+      "password": "$2b$10$jaFbH80lLwT2Tz0yo6qMLunC1MmNlCBAl2fVEEpeXvNJP4..bdn/G",
+      "role": "User",
+      "status": "active",
+      "createdBy": "Admin"
+    },
+    {
+      "username": "test100",
+      "password": "$2b$10$K4vxBGXXqhCeeKQSBdAgK.QEPVIydqjdLc01tQR0oDoWGF7ZYkGB2",
+      "role": "User",
+      "status": "active",
+      "createdBy": "Admin"
+    },
+    {
+      "username": "Iwanttotest",
+      "password": "$2b$10$T4iVVtXuX0QdmK9TcXw/seRcVfy3TS4aT6X7eNYMKBlWM43CP9QI6",
+      "role": "Staff",
+      "status": "active",
+      "createdBy": "test100"
+    },
+    {
+      "username": "test11",
+      "password": "$2b$10$IZO5BU7ax0RMZatVGLYH9OuvMCHyDWuAfltXzdRbQaAn0WPtERTli",
+      "role": "User",
+      "status": "active",
+      "createdBy": "Admin"
+    },
+    {
+      "username": "test111",
+      "password": "$2b$10$Juzhy5otBJpBHXgI1ELUnOI4LrdJmVppcVao.QHRJMV59IrNkC.uC",
+      "role": "User",
+      "status": "active",
+      "createdBy": "Admin"
+    },
+    {
+      "username": "testtest111111",
+      "password": "$2b$10$oMqVxqGXIAtsqd.8WDGtk.Cg3HncXYCbZEoIQkJwwGOQ2xJdc9tou",
+      "role": "Staff",
+      "status": "active",
+      "createdBy": "Admin"
+    }
+  ],
+  "patients": [
+    {
+      "id": 1,
+      "name": "Sarah Lim",
+      "contactNumber": "87654321",
+      "medicalHistory": "NIL",
+      "ward": "Ward 2C"
+    },
+    {
+      "id": 2,
+      "name": "Megan Tan",
+      "contactNumber": "87654321",
+      "medicalHistory": "Seafood allergy",
+      "ward": "Ward 2C"
+    },
+    {
+      "id": 3,
+      "name": "Ahmad Rahim",
+      "contactNumber": "90123456",
+      "medicalHistory": "NIL",
+      "ward": "Ward 3A"
+    },
+    {
+      "id": 4,
+      "name": "Chloe Ng",
+      "contactNumber": "81726354",
+      "medicalHistory": "Hypertension",
+      "ward": "Ward 3A"
+    },
+    {
+      "id": 5,
+      "name": "Lucas Wong",
+      "contactNumber": "96548765",
+      "medicalHistory": "NIL",
+      "ward": "Ward 3A"
+    },
+    {
+      "id": 6,
+      "name": "Tan Wei",
+      "contactNumber": "82734028",
+      "medicalHistory": "Diabetes",
+      "ward": "Ward 4B"
+    },
+    {
+      "id": 7,
+      "name": "Siti Nur",
+      "contactNumber": "82930000",
+      "medicalHistory": "NIL",
+      "ward": "Ward 4B"
+    },
+    {
+      "id": 8,
+      "name": "Test",
+      "contactNumber": "92313333",
+      "medicalHistory": "NIL",
+      "ward": "Ward 3A"
+    },
+    {
+      "id": 9,
+      "name": "testtest",
+      "contactNumber": "90909090",
+      "medicalHistory": "NIL",
+      "ward": "Ward 3A"
+    }
+  ],
+  "activeUser": null,
+  "lastActivity": null,
+  "activityLog": [
+    {
+      "timestamp": 1765708164445,
+      "user": "Admin",
+      "action": "Updated user",
+      "details": "Username: Xanthe, New role: User"
+    },
+    {
+      "timestamp": 1766156785828,
+      "user": "Admin",
+      "action": "Created role",
+      "details": "User"
+    },
+    {
+      "timestamp": 1766159138322,
+      "user": "Admin",
+      "action": "Created role",
+      "details": "Administrator"
+    },
+    {
+      "timestamp": 1767894166752,
+      "user": "Admin",
+      "action": "Deleted user",
+      "details": "Username: Thi"
+    },
+    {
+      "timestamp": 1767894238998,
+      "user": "Admin",
+      "action": "Created user",
+      "details": "Username: Han, Role: Staff"
+    },
+    {
+      "timestamp": 1767894262337,
+      "user": "Nurse1",
+      "action": "Account requested",
+      "details": "Username: Thi, Role: User"
+    },
+    {
+      "timestamp": 1768202204042,
+      "user": "Admin",
+      "action": "Added patient",
+      "details": "Patient ID 8 - Test, Ward Ward 3A"
+    },
+    {
+      "timestamp": 1768202268975,
+      "user": "Admin",
+      "action": "Updated user",
+      "details": "Username: Han, New role: User"
+    },
+    {
+      "timestamp": 1768202278350,
+      "user": "Admin",
+      "action": "Deleted user",
+      "details": "Username: Han"
+    },
+    {
+      "timestamp": 1768202284315,
+      "user": "Admin",
+      "action": "Approved user",
+      "details": "Username: Thi"
+    },
+    {
+      "timestamp": 1768202297886,
+      "user": "Admin",
+      "action": "Created user",
+      "details": "Username: test10, Role: Administrator"
+    },
+    {
+      "timestamp": 1768202317617,
+      "user": "Admin",
+      "action": "Created user",
+      "details": "Username: testtest, Role: User"
+    },
+    {
+      "timestamp": 1768202343252,
+      "user": "Admin",
+      "action": "Created role",
+      "details": "Doctor"
+    },
+    {
+      "timestamp": 1768202349230,
+      "user": "Admin",
+      "action": "Updated role",
+      "details": "Doctor → Docto"
+    },
+    {
+      "timestamp": 1768202353528,
+      "user": "Admin",
+      "action": "Updated role",
+      "details": "Docto → Doctor"
+    },
+    {
+      "timestamp": 1768202473234,
+      "user": "Admin",
+      "action": "Created user",
+      "details": "Username: test100, Role: User"
+    },
+    {
+      "timestamp": 1768202507819,
+      "user": "test100",
+      "action": "Account requested",
+      "details": "Username: Iwanttotest, Role: Doctor"
+    },
+    {
+      "timestamp": 1768202532490,
+      "user": "Admin",
+      "action": "Approved user",
+      "details": "Username: Iwanttotest"
+    },
+    {
+      "timestamp": 1768203557917,
+      "user": "Admin",
+      "action": "Created user",
+      "details": "Username: test11, Role: User"
+    },
+    {
+      "timestamp": 1768274935821,
+      "user": "Admin",
+      "action": "Created user",
+      "details": "Username: test111, Role: User"
+    },
+    {
+      "timestamp": 1768275597577,
+      "user": "Admin",
+      "action": "Created user",
+      "details": "Username: test1111, Role: Administrator"
+    },
+    {
+      "timestamp": 1768275615273,
+      "user": "Admin",
+      "action": "Updated user",
+      "details": "Username: test1111, New role: Administrator, password changed"
+    },
+    {
+      "timestamp": 1768275620386,
+      "user": "Admin",
+      "action": "Deleted user",
+      "details": "Username: test1111"
+    },
+    {
+      "timestamp": 1768275720138,
+      "user": "Admin",
+      "action": "Added patient",
+      "details": "Patient ID 9 - testtest, Ward Ward 3A"
+    },
+    {
+      "timestamp": 1768275732933,
+      "user": "Admin",
+      "action": "Created user",
+      "details": "Username: testtest111111, Role: Staff"
+    },
+    {
+      "timestamp": 1768275750780,
+      "user": "Admin",
+      "action": "Updated user",
+      "details": "Username: Iwanttotest, New role: Staff, password changed"
+    }
+  ],
+  "files": [
+    {
+      "id": "1765782100415",
+      "title": "Test",
+      "desc": "tEST",
+      "filename": "1765782100402-KKH_Shared_Files_Demo.pdf",
+      "uploader": "Admin",
+      "date": 1765782100415
+    },
+    {
+      "id": "1765782147245",
+      "title": "Ward 4B",
+      "desc": "This is a latest record for patient in Ward 4B",
+      "filename": "1765782147237-KKH_Shared_Files_Demo.pdf",
+      "uploader": "Admin",
+      "date": 1765782147246
+    }
+  ],
+  "roles": [
+    "User",
+    "Administrator",
+    "Staff",
+    "Doctor"
+  ]
+}
