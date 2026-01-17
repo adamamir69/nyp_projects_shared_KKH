@@ -20,6 +20,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "css")));
 app.use(express.static(path.join(__dirname, "images")));
+app.use(express.static(path.join(__dirname, "pages")));
+app.use(verifyUser);
 
 // Initialize DB
 const file = join(__dirname, '../shared-db/db.json');
@@ -32,12 +34,12 @@ db.data ||= defaultData;
 await db.write();
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  }
+    destination: (req, file, cb) => {
+        cb(null, "uploads");
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + "-" + file.originalname);
+    }
 });
 
 const upload = multer({ storage });
@@ -45,6 +47,36 @@ const upload = multer({ storage });
 
 // Max idle time (30 min)
 const maxIdleTime = 30 * 60 * 1000;
+
+// authenticate
+async function verifyUser(req, res, next) {
+    const username = req.cookies.user4000;
+    if (!username) {
+        req.user = null;
+        return next();
+    }
+
+    await db.read();
+    const user = db.data.users.find(u => u.username === username && u.status === "active");
+
+    req.user = user || null;
+    next();
+}
+// check login
+function requireLogin(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({ message: "Login required" });
+    }
+    next();
+}
+// check if role = admin
+function requireAdmin(req, res, next) {
+    if (!req.user) return res.status(401).json({ message: "Login required" });
+    if (req.user.role !== "Administrator") {
+        return res.status(403).json({ message: "Admin access only" });
+    }
+    next();
+}
 
 
 async function checkAuth(req, res, next) {
@@ -134,7 +166,7 @@ app.post("/login", async (req, res) => {
 
     const user = db.data.users.find(u => u.username === username);
 
-    if(user && user.status == "active" && await bcrypt.compare(password, user.password)) {
+    if (user && user.status == "active" && await bcrypt.compare(password, user.password)) {
         db.data.activeUser = username;
         db.data.lastActivity = Date.now();
         await db.write();
@@ -181,7 +213,7 @@ app.get("/logout", async (req, res) => {
 
 
 
-app.get("/current-user", async (req, res) => {
+app.get("/current-user", requireLogin, async (req, res) => {
     await db.read();
     res.json({
         activeUser: db.data.activeUser,
@@ -189,7 +221,7 @@ app.get("/current-user", async (req, res) => {
     });
 });
 
-app.post("/request-logout", async (req, res) => {
+app.post("/request-logout", requireLogin, async (req, res) => {
     await db.read();
 
     db.data.activeUser = null;
@@ -202,7 +234,7 @@ app.post("/request-logout", async (req, res) => {
 
 
 // To View Status
-app.get("/status", async (req, res) => {
+app.get("/status", requireLogin, async (req, res) => {
     await db.read();
 
     const currentUser = req.cookies.user4000 || null;
@@ -222,7 +254,7 @@ app.get("/status", async (req, res) => {
 
 
 
-app.post("/create-user", async (req, res) => {
+app.post("/create-user", requireAdmin, async (req, res) => {
     try {
         const { username, password, role } = req.body;
         const createdBy = req.cookies.user4000 || "Public";
@@ -263,6 +295,11 @@ app.post("/create-user", async (req, res) => {
             `Username: ${username}, Role: ${role}`
         );
 
+        if (status === "pending") {
+            await addNotification("Administrator", "USER_REQUEST", `New account request: ${username} (${role})`);
+        }
+
+
         res.json({
             success: true,
             message:
@@ -282,14 +319,9 @@ app.post("/create-user", async (req, res) => {
 // -------------------------------------------------
 // View All users : For account with Admin Role
 // -------------------------------------------------
-app.get("/users", async (req, res) => {
+app.get("/users", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     await db.read();
-
-    const userObj = db.data.users.find(u => u.username === currentUser);
-    if (!userObj || userObj.role !== "Administrator") {
-        return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
 
     const users = db.data.users.map(u => ({
         username: u.username,
@@ -304,7 +336,7 @@ app.get("/users", async (req, res) => {
 // Update User Role : For account with Admin Role 
 // -------------------------------------------------
 // Update user role
-app.post("/update-user", async (req, res) => {
+app.post("/update-user", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     await db.read();
     const { username, role, password } = req.body;
@@ -337,7 +369,7 @@ app.post("/update-user", async (req, res) => {
 // -------------------------------------------------
 // Delete User : For account with Admin Role
 // -------------------------------------------------
-app.post("/delete-user", async (req, res) => {
+app.post("/delete-user", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     const { username } = req.body;
 
@@ -355,7 +387,7 @@ app.post("/delete-user", async (req, res) => {
 });
 
 // To View User Requests
-app.get("/user-requests", async (req, res ) => {
+app.get("/user-requests", async (req, res) => {
     const currentUser = req.cookies.user4000;
     await db.read();
 
@@ -374,16 +406,11 @@ app.get("/user-requests", async (req, res ) => {
 });
 
 // To approve user 
-app.post("/approve-user", async (req, res) => {
+app.post("/approve-user", requireAdmin, async (req, res) => {
     const adminUser = req.cookies.user4000;
     const { username } = req.body;
 
     await db.read();
-
-    const admin = db.data.users.find(u => u.username === adminUser);
-    if (!admin || admin.role !== "Administrator") {
-        return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
 
     const user = db.data.users.find(u => u.username === username);
     if (!user) {
@@ -394,13 +421,15 @@ app.post("/approve-user", async (req, res) => {
     await db.write();
 
     await logActivity(adminUser, "Approved user", `Username: ${username}`);
+    await addNotification(username, "ACCOUNT_APPROVED", "Your account has been approved by the administrator.");
+
     res.json({ success: true });
 });
 
 
 // To Reject User
-app.post("/reject-user", async (req, res) => {
-    const {username} = req.body;
+app.post("/reject-user", requireAdmin, async (req, res) => {
+    const { username } = req.body;
     await db.read();
 
     const index = db.data.users.findIndex(u => u.username === username);
@@ -410,26 +439,22 @@ app.post("/reject-user", async (req, res) => {
 
     db.data.users.splice(index, 1);
     await db.write();
-    
+
     const adminUser = req.cookies.user4000;
     await logActivity(adminUser, "Rejected user", `Username: ${username}`);
+    await addNotification(username, "ACCOUNT_REJECTED", "Your account has been rejected.");
 
-    res.json({success: true});
+    res.json({ success: true });
 
 });
 
 
 // To Create Roles
-app.post("/create-role", async (req, res) => {
+app.post("/create-role", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     const { role } = req.body;
 
     await db.read();
-
-    const admin = db.data.users.find(u => u.username === currentUser);
-    if (!admin || admin.role !== "Administrator") {
-        return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
 
     if (!role) {
         return res.json({ success: false, message: "Role name required" });
@@ -445,6 +470,8 @@ app.post("/create-role", async (req, res) => {
     await db.write();
 
     await logActivity(currentUser, "Created role", role);
+    await addNotification("Administrator", "ROLE_CREATED", `New role added: ${role}`);
+
 
     res.json({ success: true });
 });
@@ -453,62 +480,51 @@ app.post("/create-role", async (req, res) => {
 // get roles
 app.get("/roles", async (req, res) => {
     await db.read();
-    res.json({roles: db.data.roles});
+    res.json({ roles: db.data.roles });
 });
 
 
 // Update role
-app.post("/update-role", async (req, res) => {
-  const currentUser = req.cookies.user4000;
-  const { oldRole, newRole } = req.body;
+app.post("/update-role", requireAdmin, async (req, res) => {
+    const currentUser = req.cookies.user4000;
+    const { oldRole, newRole } = req.body;
 
-  await db.read();
+    await db.read();
 
-  // Admin check
-  const admin = db.data.users.find(u => u.username === currentUser);
-  if (!admin || admin.role !== "Administrator") {
-    return res.status(403).json({ success: false, message: "Unauthorized" });
-  }
-
-  if (!oldRole || !newRole) {
-    return res.json({ success: false, message: "Missing fields" });
-  }
-
-  if (!db.data.roles.includes(oldRole)) {
-    return res.json({ success: false, message: "Old role not found" });
-  }
-
-  if (db.data.roles.includes(newRole)) {
-    return res.json({ success: false, message: "Role already exists" });
-  }
-
-  // Update role in roles array
-  db.data.roles = db.data.roles.map(r => r === oldRole ? newRole : r);
-
-  // Update role for users using this role
-  db.data.users.forEach(u => {
-    if (u.role === oldRole) {
-      u.role = newRole;
+    if (!oldRole || !newRole) {
+        return res.json({ success: false, message: "Missing fields" });
     }
-  });
 
-  await db.write();
-  await logActivity(currentUser, "Updated role", `${oldRole} → ${newRole}`);
+    if (!db.data.roles.includes(oldRole)) {
+        return res.json({ success: false, message: "Old role not found" });
+    }
 
-  res.json({ success: true });
+    if (db.data.roles.includes(newRole)) {
+        return res.json({ success: false, message: "Role already exists" });
+    }
+
+    // Update role in roles array
+    db.data.roles = db.data.roles.map(r => r === oldRole ? newRole : r);
+
+    // Update role for users using this role
+    db.data.users.forEach(u => {
+        if (u.role === oldRole) {
+            u.role = newRole;
+        }
+    });
+
+    await db.write();
+    await logActivity(currentUser, "Updated role", `${oldRole} → ${newRole}`);
+
+    res.json({ success: true });
 });
 
 
-app.post("/delete-role", async (req, res) => {
+app.post("/delete-role", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     const { role } = req.body;
 
     await db.read();
-
-    const admin = db.data.users.find(u => u.username === currentUser);
-    if (!admin || admin.role !== "Administrator") {
-        return res.status(403).json({ success: false });
-    }
 
     if (["Administrator", "User"].includes(role)) {
         return res.json({ success: false, message: "Default roles cannot be deleted" });
@@ -530,13 +546,9 @@ app.post("/delete-role", async (req, res) => {
 
 
 // add patient
-app.post("/create-patient", async (req, res) => {
+app.post("/create-patient", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     await db.read();
-    const userObj = db.data.users.find(u => u.username === currentUser);
-    if (!userObj || userObj.role !== "Administrator") {
-        return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
 
     const { name, contactNumber, medicalHistory, ward } = req.body;
     if (!name || !contactNumber || !medicalHistory || !ward) {
@@ -551,23 +563,20 @@ app.post("/create-patient", async (req, res) => {
     db.data.patients.push({ id: newId, name, contactNumber, medicalHistory, ward });
     await db.write();
     await logActivity(currentUser, "Added patient", `Patient ID ${newId} - ${name}, Ward ${ward}`);
+    await addNotification("Administrator", "PATIENT_CREATED", `New patient added: ${name} (${ward})`);
 
     res.json({ success: true, patientId: newId });
 });
 
 // get patients
-app.get("/patients", async (req, res) => {
+app.get("/patients", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     await db.read();
-    const userObj = db.data.users.find(u => u.username === currentUser);
-    if (!userObj || userObj.role !== "Administrator") {
-        return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
     res.json({ success: true, patients: db.data.patients });
 });
 
 // delete patient
-app.delete("/patients/:id", async (req, res) => {
+app.delete("/patients/:id", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     const id = Number(req.params.id);
     await db.read();
@@ -580,7 +589,7 @@ app.delete("/patients/:id", async (req, res) => {
 });
 
 // work schedule
-app.get("/work-schedule", async (req, res) => {
+app.get("/work-schedule", requireLogin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     await db.read();
 
@@ -600,14 +609,9 @@ app.get("/work-schedule", async (req, res) => {
 
 
 // display activity log
-app.get("/activity-log", async (req, res) => {
+app.get("/activity-log", requireAdmin, async (req, res) => {
     const currentUser = req.cookies.user4000;
     await db.read();
-
-    const userObj = db.data.users.find(u => u.username === currentUser);
-    if (!userObj || userObj.role !== "Administrator") {
-        return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
 
     const logs = db.data.activityLog.map(a => ({
         timestamp: a.timestamp,
@@ -621,81 +625,157 @@ app.get("/activity-log", async (req, res) => {
 
 
 app.post("/upload-file", upload.single("file"), async (req, res) => {
-  try {
+    try {
+        await db.read();
+
+        db.data.files ||= []; // ✅ SAFETY FIX
+
+        const { title, desc } = req.body;
+        const currentUser = req.cookies.user4000;
+
+        if (!req.file || !title) {
+            return res.json({ success: false, message: "Missing file or title" });
+        }
+
+        const newFile = {
+            id: Date.now().toString(),
+            title,
+            desc,
+            filename: req.file.filename,
+            uploader: currentUser,
+            date: Date.now()
+        };
+
+        db.data.files.push(newFile);
+        await db.write();
+
+        await addNotification("Administrator", "FILE_UPLOAD", `${currentUser} uploaded a new file: ${title}`);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Upload error:", err);
+        res.json({ success: false, message: "Upload failed" });
+    }
+});
+
+
+
+app.get("/files", requireLogin, async (req, res) => {
+    await db.read();
+    res.json({ files: db.data.files });
+});
+
+
+app.get("/recent-files", requireLogin, async (req, res) => {
+    await db.read();
+    const recent = [...db.data.files]
+        .sort((a, b) => b.date - a.date)
+        .slice(0, 5);
+
+    res.json({ files: recent });
+});
+
+
+app.get("/download-file/:id", requireLogin, async (req, res) => {
     await db.read();
 
-    db.data.files ||= []; // ✅ SAFETY FIX
+    const file = db.data.files.find(f => f.id === req.params.id);
+    if (!file) return res.sendStatus(404);
 
-    const { title, desc } = req.body;
-    const currentUser = req.cookies.user4000;
+    res.download(path.join("uploads", file.filename));
+});
 
-    if (!req.file || !title) {
-      return res.json({ success: false, message: "Missing file or title" });
-    }
 
-    const newFile = {
-      id: Date.now().toString(),
-      title,
-      desc,
-      filename: req.file.filename,
-      uploader: currentUser,
-      date: Date.now()
-    };
+app.post("/delete-file", requireLogin, async (req, res) => {
+    await db.read();
 
-    db.data.files.push(newFile);
+    const { id } = req.body;
+    const index = db.data.files.findIndex(f => f.id === id);
+
+    if (index === -1) return res.json({ success: false });
+
+    const file = db.data.files[index];
+    fs.unlinkSync(path.join("uploads", file.filename));
+
+    db.data.files.splice(index, 1);
     await db.write();
 
     res.json({ success: true });
-  } catch (err) {
-    console.error("Upload error:", err);
-    res.json({ success: false, message: "Upload failed" });
-  }
+});
+
+// notifications
+async function addNotification(user, type, message) {
+    await db.read();
+    db.data.notifications ||= [];
+
+    if (user === "Administrator") {
+        const admins = db.data.users.filter(u => u.role === "Administrator");
+        admins.forEach(a => {
+            db.data.notifications.push({
+                id: Date.now().toString() + Math.random(),
+                user: a.username,
+                type: type,
+                message: message,
+                timestamp: Date.now(),
+                read: false
+            });
+        });
+    }
+    else {
+        db.data.notifications.push({
+            id: Date.now().toString() + Math.random(),
+            user: user,
+            message: message,
+            timestamp: Date.now(),
+            read: false
+        })
+    }
+    await db.write();
+
+};
+
+app.get("/notifications", async (req, res) => {
+    const currentUser = req.cookies.user4000;
+    await db.read();
+    const userNotifications = db.data.notifications.filter(n => n.user === currentUser).sort((a, b) => b.timestamp - a.timestamp);
+    res.json({ notifications: userNotifications });
 });
 
 
+app.post("/notifications/read", requireLogin, async (req, res) => {
+    const currentUser = req.cookies.user4000;
+    const { id } = req.body;
+    await db.read();
 
-app.get("/files", async (req, res) => {
-  await db.read();
-  res.json({ files: db.data.files });
+    const notif = db.data.notifications.find(n => n.id === id && n.user === currentUser);
+    if (!notif) { return res.json({ success: false }) };
+
+    notif.read = true;
+    await db.write();
+    res.json({ success: true });
+});
+
+app.post("/notifications/delete", async (req, res) => {
+    const { id } = req.body;
+    await db.read();
+    db.data.notifications = db.data.notifications.filter(n => n.id !== id);
+    await db.write();
+    res.json({ success: true });
+});
+
+app.post("/notifications/read-all", requireLogin, async (req, res) => {
+    const currentUser = req.cookies.user4000;
+    await db.read();
+
+    db.data.notifications.forEach(n => {
+        if (n.user === currentUser) n.read = true;
+    });
+
+    await db.write();
+    res.json({ success: true });
 });
 
 
-app.get("/recent-files", async (req, res) => {
-  await db.read();
-  const recent = [...db.data.files]
-    .sort((a, b) => b.date - a.date)
-    .slice(0, 5);
-
-  res.json({ files: recent });
-});
-
-
-app.get("/download-file/:id", async (req, res) => {
-  await db.read();
-
-  const file = db.data.files.find(f => f.id === req.params.id);
-  if (!file) return res.sendStatus(404);
-
-  res.download(path.join("uploads", file.filename));
-});
-
-
-app.post("/delete-file", async (req, res) => {
-  await db.read();
-
-  const { id } = req.body;
-  const index = db.data.files.findIndex(f => f.id === id);
-
-  if (index === -1) return res.json({ success: false });
-
-  const file = db.data.files[index];
-  fs.unlinkSync(path.join("uploads", file.filename));
-
-  db.data.files.splice(index, 1);
-  await db.write();
-
-  res.json({ success: true });
-});
 
 // -------------------------------------------------
 // Start server

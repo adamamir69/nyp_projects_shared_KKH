@@ -158,5 +158,15 @@
     "User",
     "Administrator",
     "Staff"
+  ],
+  "notifications": [
+    {
+      "id": "17686464326920.3542748038283934",
+      "user": "Admin",
+      "type": "PATIENT_CREATED",
+      "message": "New patient added: Patient1 (Ward 2C)",
+      "timestamp": 1768646432692,
+      "read": false
+    }
   ]
 }
