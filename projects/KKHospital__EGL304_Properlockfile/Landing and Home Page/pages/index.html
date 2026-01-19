@@ -994,7 +994,8 @@
       let unreadCount = 0;
 
       const unread = data.notifications.filter(n => !n.read);
-      unread.forEach(n => {
+      const topNotifs = unread.slice(0, 3);
+      topNotifs.forEach(n => {
         const item = document.createElement("div");
         item.className = `notif-item ${n.read ? "" : "unread"}`;
 
@@ -1008,21 +1009,19 @@
           ${!n.read ? `<span class="unread-dot"></span>` : ""}
         `;
 
-        // click = mark as read
-        item.addEventListener("click", async () => {
-          if (!n.read) {
-            await fetch("/notifications/read", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id: n.id })
-            });
-            loadNotifications();
-          }
-        });
-
         list.appendChild(item);
         if (!n.read) unreadCount++;
       });
+
+      if (unread.length > topNotifs) {
+        const more = document.createElement("div");
+        more.className = "see-all-notifs";
+        more.textContent = "... more";
+        more.addEventListener("click", () => {
+          window.location.href = "/notifications.html";
+        });
+        list.appendChild(more);
+      }
 
       document.getElementById("notif-count").innerText = unread.length;
     }

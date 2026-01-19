@@ -499,7 +499,7 @@ app.get("/user-requests", requireAdmin, async (req, res) => {
 app.post("/approve-user", requireAdmin, async (req, res) => {
   const adminUser = req.user?.username;
   const { username } = req.body;
-
+  let createdByUser = null;
   await db.read();
 
   const userApproved = await safeUpdate((data) => {
@@ -507,13 +507,14 @@ app.post("/approve-user", requireAdmin, async (req, res) => {
     if (!user) {
       return false;
     }
+    createdByUser = user.createdBy;
     user.status = "active";
     return true;
   });
   if (userApproved) {
     await logActivity(adminUser, "Approved user", `Username: ${username}`);
-    if (user.createdBy) {
-      await addNotification(user.createdBy, "ACCOUNT_APPROVED", `Your account request for ${username} has been approved by the administrator.`);
+    if (createdByUser) {
+      await addNotification(createdByUser, "ACCOUNT_APPROVED", `Your account request for ${username} has been approved by the administrator.`);
     }
     res.json({ success: true, message: "User approved" });
   } else {
@@ -826,7 +827,6 @@ app.post("/delete-file", requireLogin, async (req, res) => {
     res.json({ success: false, message: "File not found or deletion failed" });
   }
 });
-
 
 // notifications
 async function addNotification(user, type, message, excludeUser = null) {
