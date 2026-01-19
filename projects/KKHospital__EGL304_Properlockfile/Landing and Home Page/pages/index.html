@@ -6,26 +6,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Home - KK Hospital</title>
   <link rel="stylesheet" href="/index.css">
-    <style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
     /* minimal modal styles so popup is visible; remove if you already have them */
-    .modal { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); z-index: 100; }
-    .modal .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 320px; }
-    .action-btn { margin: 6px; }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+    }
+
+    .modal .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      width: 320px;
+    }
+
+    .action-btn {
+      margin: 6px;
+    }
 
     /* Loading overlay */
     .loading-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0, 0, 0, 0.6);
       align-items: center;
       justify-content: center;
       z-index: 9999;
     }
+
     .loading-overlay.show {
       display: flex;
       flex-direction: column;
     }
+
     .spinner {
       border: 6px solid #f3f3f3;
       border-top: 6px solid #3498db;
@@ -34,10 +54,17 @@
       height: 50px;
       animation: spin 0.8s linear infinite;
     }
+
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
+
     .loading-text {
       color: #fff;
       margin-top: 15px;
@@ -48,8 +75,8 @@
 
 <body>
   <div id="loading-overlay" class="loading-overlay">
-  <div class="spinner"></div>
-  <div class="loading-text">Loading...</div>
+    <div class="spinner"></div>
+    <div class="loading-text">Loading...</div>
   </div>
 
   <!-- =============================
@@ -58,6 +85,11 @@
   <header class="topbar">
     <div class="container">
       <h2>KK Hospital File Sharing System</h2>
+      <div class="notification-bell">
+        <i class="fa fa-bell" id="notif-icon"></i>
+        <span id="notif-count">0</span>
+        <div id="notif-list" class="notif-dropdown"></div>
+      </div>
       <div class="account-info">
         <span id="username-display">Logged in as: <span id="user"></span></span>
         <a href="/logout" class="logout-btn" id="logout-btn">Logout</a>
@@ -950,6 +982,55 @@
       } catch (err) { showPopup("Failed to load activity log", "error"); }
     }
 
+
+    // notifications
+    async function loadNotifications() {
+      const res = await fetch("/notifications");
+      const data = await res.json();
+
+      const list = document.getElementById("notif-list");
+      list.innerHTML = "";
+
+      let unreadCount = 0;
+
+      const unread = data.notifications.filter(n => !n.read);
+      unread.forEach(n => {
+        const item = document.createElement("div");
+        item.className = `notif-item ${n.read ? "" : "unread"}`;
+
+        item.innerHTML = `
+          <div class="notif-content">
+            <p class="notif-msg">${n.message}</p>
+            <span class="notif-time">
+              ${new Date(n.timestamp).toLocaleString()}
+            </span>
+          </div>
+          ${!n.read ? `<span class="unread-dot"></span>` : ""}
+        `;
+
+        // click = mark as read
+        item.addEventListener("click", async () => {
+          if (!n.read) {
+            await fetch("/notifications/read", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: n.id })
+            });
+            loadNotifications();
+          }
+        });
+
+        list.appendChild(item);
+        if (!n.read) unreadCount++;
+      });
+
+      document.getElementById("notif-count").innerText = unread.length;
+    }
+
+    loadNotifications();
+    setInterval(loadNotifications, 10000);
+
+    document.getElementById("notif-icon").addEventListener("click", () => { window.location.href = "/notifications.html"; });
 
     document.querySelectorAll(".sub-tab-btn").forEach(btn => {
       btn.addEventListener("click", () => {

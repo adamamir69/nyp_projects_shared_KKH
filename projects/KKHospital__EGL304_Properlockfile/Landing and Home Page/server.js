@@ -90,6 +90,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "css")));
 app.use(express.static(path.join(__dirname, "images")));
+app.use(express.static(path.join(__dirname, "pages")));
+app.use(verifyUser);
 
 // Initialize DB
 const file = join(__dirname, "../shared-db/db.json");
@@ -120,6 +122,36 @@ const upload = multer({ storage });
 
 // Max idle time (30 min)
 // const maxIdleTime = 30 * 60 * 1000;
+
+// authenticate
+async function verifyUser(req, res, next) {
+  const username = req.cookies.user4000;
+  if (!username) {
+    req.user = null;
+    return next();
+  }
+
+  await db.read();
+  const user = db.data.users.find(u => u.username === username && u.status === "active");
+
+  req.user = user || null;
+  next();
+}
+// check login
+function requireLogin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Login required" });
+  }
+  next();
+}
+// check if role = admin
+function requireAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ message: "Login required" });
+  if (req.user.role !== "Administrator") {
+    return res.status(403).json({ message: "Admin access only" });
+  }
+  next();
+}
 
 async function checkAuth(req, res, next) {
   const username = req.cookies.user4000;
@@ -271,12 +303,11 @@ app.get("/logout", async (req, res) => {
 // });
 
 // To View Status
-app.get("/status", async (req, res) => {
+app.get("/status", requireLogin, async (req, res) => {
   await db.read();
 
-  const currentUser = req.cookies.user4000 || null;
-  const userObj = db.data.users.find((u) => u.username === currentUser);
-  const role = userObj ? userObj.role : null;
+  const currentUser = req.user?.username;
+  const role = req.user?.role || null;
 
   res.json({
     activeUser: db.data.activeUser,
@@ -289,7 +320,7 @@ app.get("/status", async (req, res) => {
   });
 });
 
-app.post("/create-user", async (req, res) => {
+app.post("/create-user", requireLogin, async (req, res) => {
   try {
     const { username, password, role } = req.body;
     const createdBy = req.cookies.user4000 || "Public";
@@ -335,6 +366,14 @@ app.post("/create-user", async (req, res) => {
         status === "active" ? "Created user" : "Account requested",
         `Username: ${username}, Role: ${role}`
       );
+      if (status === "pending") {
+        await addNotification(
+          "Administrator",
+          "USER_REQUEST",
+          `New account request: ${username} (${role})`,
+          username
+        );
+      }
       return res.json({
         success: true,
         message:
@@ -357,14 +396,9 @@ app.post("/create-user", async (req, res) => {
 // -------------------------------------------------
 // View All users : For account with Admin Role
 // -------------------------------------------------
-app.get("/users", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.get("/users", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   await db.read();
-
-  const userObj = db.data.users.find((u) => u.username === currentUser);
-  if (!userObj || userObj.role !== "Administrator") {
-    return res.status(403).json({ success: false, message: "Unauthorized" });
-  }
 
   const users = db.data.users.map((u) => ({
     username: u.username,
@@ -379,8 +413,8 @@ app.get("/users", async (req, res) => {
 // Update User Role : For account with Admin Role
 // -------------------------------------------------
 // Update user role
-app.post("/update-user", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.post("/update-user", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   await db.read();
   const { username, role, password } = req.body;
 
@@ -405,8 +439,7 @@ app.post("/update-user", async (req, res) => {
     await logActivity(
       currentUser,
       "Updated user",
-      `Username: ${username}, New role: ${role}${
-        password ? ", password changed" : ""
+      `Username: ${username}, New role: ${role}${password ? ", password changed" : ""
       }`
     );
     return res.json({ success: true, message: "User updated" });
@@ -418,8 +451,8 @@ app.post("/update-user", async (req, res) => {
 // -------------------------------------------------
 // Delete User : For account with Admin Role
 // -------------------------------------------------
-app.post("/delete-user", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.post("/delete-user", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   const { username } = req.body;
 
   await db.read();
@@ -447,14 +480,9 @@ app.post("/delete-user", async (req, res) => {
 });
 
 // To View User Requests
-app.get("/user-requests", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.get("/user-requests", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   await db.read();
-
-  const admin = db.data.users.find((u) => u.username === currentUser);
-  if (!admin || admin.role !== "Administrator") {
-    return res.status(403).json({ success: false, message: "Unauthorized" });
-  }
 
   const requests = db.data.users
     .filter((u) => u.status === "pending")
@@ -468,16 +496,11 @@ app.get("/user-requests", async (req, res) => {
 });
 
 // To approve user
-app.post("/approve-user", async (req, res) => {
-  const adminUser = req.cookies.user4000;
+app.post("/approve-user", requireAdmin, async (req, res) => {
+  const adminUser = req.user?.username;
   const { username } = req.body;
 
   await db.read();
-
-  const admin = db.data.users.find((u) => u.username === adminUser);
-  if (!admin || admin.role !== "Administrator") {
-    return res.status(403).json({ success: false, message: "Unauthorized" });
-  }
 
   const userApproved = await safeUpdate((data) => {
     const user = data.users.find((u) => u.username === username);
@@ -489,6 +512,9 @@ app.post("/approve-user", async (req, res) => {
   });
   if (userApproved) {
     await logActivity(adminUser, "Approved user", `Username: ${username}`);
+    if (user.createdBy) {
+      await addNotification(user.createdBy, "ACCOUNT_APPROVED", `Your account request for ${username} has been approved by the administrator.`);
+    }
     res.json({ success: true, message: "User approved" });
   } else {
     res.status(404).json({ success: false, message: "User not found or approval failed" });
@@ -496,9 +522,9 @@ app.post("/approve-user", async (req, res) => {
 });
 
 // To Reject User
-app.post("/reject-user", async (req, res) => {
+app.post("/reject-user", requireAdmin, async (req, res) => {
   const { username } = req.body;
-  const adminUser = req.cookies.user4000;
+  const adminUser = req.user?.username;
   await db.read();
 
   const userRejected = await safeUpdate((data) => {
@@ -511,6 +537,7 @@ app.post("/reject-user", async (req, res) => {
   });
   if (userRejected) {
     await logActivity(adminUser, "Rejected user", `Username: ${username}`);
+    await addNotification(username, "ACCOUNT_REJECTED", "Your account has been rejected.");
     res.json({ success: true, message: "User rejected" });
   } else {
     res.status(404).json({ success: false, message: "User not found or rejection failed" });
@@ -518,16 +545,11 @@ app.post("/reject-user", async (req, res) => {
 });
 
 // To Create Roles
-app.post("/create-role", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.post("/create-role", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   const { role } = req.body;
 
   await db.read();
-
-  const admin = db.data.users.find((u) => u.username === currentUser);
-  if (!admin || admin.role !== "Administrator") {
-    return res.status(403).json({ success: false, message: "Unauthorized" });
-  }
 
   if (!role) {
     return res.json({ success: false, message: "Role name required" });
@@ -543,6 +565,7 @@ app.post("/create-role", async (req, res) => {
   });
   if (roleCreated) {
     await logActivity(currentUser, "Created role", role);
+    await addNotification("Administrator", "ROLE_CREATED", `New role added: ${role}`);
     res.json({ success: true, message: "Role created" });
   } else {
     res.json({ success: false, message: "Role already exists or creation failed" });
@@ -556,16 +579,11 @@ app.get("/roles", async (req, res) => {
 });
 
 // Update role
-app.post("/update-role", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.post("/update-role", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   const { oldRole, newRole } = req.body;
-
   await db.read();
-  // Admin check
-  const admin = db.data.users.find((u) => u.username === currentUser);
-  if (!admin || admin.role !== "Administrator") {
-    return res.status(403).json({ success: false, message: "Unauthorized" });
-  }
+
   if (!oldRole || !newRole) {
     return res.json({ success: false, message: "Missing fields" });
   }
@@ -595,15 +613,11 @@ app.post("/update-role", async (req, res) => {
   }
 });
 
-app.post("/delete-role", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.post("/delete-role", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   const { role } = req.body;
 
   await db.read();
-  const admin = db.data.users.find((u) => u.username === currentUser);
-  if (!admin || admin.role !== "Administrator") {
-    return res.status(403).json({ success: false });
-  }
   if (["Administrator", "User"].includes(role)) {
     return res.json({
       success: false,
@@ -632,8 +646,8 @@ app.post("/delete-role", async (req, res) => {
 });
 
 // add patient
-app.post("/create-patient", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.post("/create-patient", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   await db.read();
   const userObj = db.data.users.find((u) => u.username === currentUser);
   if (!userObj || userObj.role !== "Administrator") {
@@ -663,6 +677,10 @@ app.post("/create-patient", async (req, res) => {
       "Added patient",
       `Patient ID ${newId} - ${name}, Ward ${ward}`
     );
+    await addNotification("Administrator",
+      "PATIENT_CREATED",
+      `New patient added: ${name} (${ward})`
+    );
     res.json({ success: true, patientId: newId });
   } else {
     res.json({ success: false, message: "Patient creation failed" });
@@ -670,19 +688,15 @@ app.post("/create-patient", async (req, res) => {
 });
 
 // get patients
-app.get("/patients", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.get("/patients", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   await db.read();
-  const userObj = db.data.users.find((u) => u.username === currentUser);
-  if (!userObj || userObj.role !== "Administrator") {
-    return res.status(403).json({ success: false, message: "Unauthorized" });
-  }
   res.json({ success: true, patients: db.data.patients });
 });
 
 // delete patient
-app.delete("/patients/:id", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.delete("/patients/:id", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   const id = Number(req.params.id);
   await db.read();
   const patientDeleted = await safeUpdate((data) => {
@@ -700,12 +714,10 @@ app.delete("/patients/:id", async (req, res) => {
 });
 
 // work schedule
-app.get("/work-schedule", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.get("/work-schedule", requireLogin, async (req, res) => {
+  const currentUser = req.user?.username;
   await db.read();
-
-  const userObj = db.data.users.find((u) => u.username === currentUser);
-  if (!userObj) {
+  if (!currentUser) {
     return res.status(401).json({ success: false });
   }
 
@@ -719,14 +731,9 @@ app.get("/work-schedule", async (req, res) => {
 });
 
 // display activity log
-app.get("/activity-log", async (req, res) => {
-  const currentUser = req.cookies.user4000;
+app.get("/activity-log", requireAdmin, async (req, res) => {
+  const currentUser = req.user?.username;
   await db.read();
-
-  const userObj = db.data.users.find((u) => u.username === currentUser);
-  if (!userObj || userObj.role !== "Administrator") {
-    return res.status(403).json({ success: false, message: "Unauthorized" });
-  }
 
   const logs = db.data.activityLog.map((a) => ({
     timestamp: a.timestamp,
@@ -738,11 +745,11 @@ app.get("/activity-log", async (req, res) => {
   return res.json({ success: true, logs });
 });
 
-app.post("/upload-file", upload.single("file"), async (req, res) => {
+app.post("/upload-file", upload.single("file"), requireLogin, async (req, res) => {
   try {
     await db.read();
     const { title, desc } = req.body;
-    const currentUser = req.cookies.user4000;
+    const currentUser = req.user?.username;
     if (!req.file || !title) {
       return res.json({ success: false, message: "Missing file or title" });
     }
@@ -762,6 +769,7 @@ app.post("/upload-file", upload.single("file"), async (req, res) => {
       return true;
     });
     if (fileAdded) {
+      await addNotification("Administrator", "FILE_UPLOAD", `${currentUser} uploaded a new file: ${title}`);
       res.json({ success: true, fileId: newFile.id });
     } else {
       res.json({ success: false, message: "File upload failed" });
@@ -772,19 +780,19 @@ app.post("/upload-file", upload.single("file"), async (req, res) => {
   }
 });
 
-app.get("/files", async (req, res) => {
+app.get("/files", requireLogin, async (req, res) => {
   await db.read();
   res.json({ files: db.data.files });
 });
 
-app.get("/recent-files", async (req, res) => {
+app.get("/recent-files", requireLogin, async (req, res) => {
   await db.read();
   const recent = [...db.data.files].sort((a, b) => b.date - a.date).slice(0, 5);
 
   res.json({ files: recent });
 });
 
-app.get("/download-file/:id", async (req, res) => {
+app.get("/download-file/:id", requireLogin, async (req, res) => {
   await db.read();
 
   const file = db.data.files.find((f) => f.id === req.params.id);
@@ -793,7 +801,7 @@ app.get("/download-file/:id", async (req, res) => {
   res.download(path.join("uploads", file.filename));
 });
 
-app.post("/delete-file", async (req, res) => {
+app.post("/delete-file", requireLogin, async (req, res) => {
   await db.read();
   const { id } = req.body;
   let fileDeleted = false;
@@ -817,6 +825,85 @@ app.post("/delete-file", async (req, res) => {
   } else {
     res.json({ success: false, message: "File not found or deletion failed" });
   }
+});
+
+
+// notifications
+async function addNotification(user, type, message, excludeUser = null) {
+  await db.read();
+  db.data.notifications ||= [];
+
+  const targetUser = db.data.users.find(u => u.username === user);
+  if (!targetUser && user !== "Administrator") {
+    console.log("Notification failed: user not found:", user);
+    return;
+  }
+
+  if (user === "Administrator") {
+    const admins = db.data.users.filter(u => u.role === "Administrator" && u.username !== excludeUser);
+    admins.forEach(a => {
+      db.data.notifications.push({
+        id: Date.now().toString() + Math.random(),
+        user: a.username,
+        type: type,
+        message: message,
+        timestamp: Date.now(),
+        read: false
+      });
+    });
+  }
+  else {
+    db.data.notifications.push({
+      id: Date.now().toString() + Math.random(),
+      user: user,
+      message: message,
+      timestamp: Date.now(),
+      read: false
+    })
+  }
+  await db.write();
+
+};
+
+app.get("/notifications", async (req, res) => {
+  const currentUser = req.user?.username;
+  await db.read();
+  const userNotifications = db.data.notifications.filter(n => n.user === currentUser).sort((a, b) => b.timestamp - a.timestamp);
+  res.json({ notifications: userNotifications });
+});
+
+
+app.post("/notifications/read", requireLogin, async (req, res) => {
+  const currentUser = req.user?.username;
+  const { id } = req.body;
+  await db.read();
+
+  const notif = db.data.notifications.find(n => n.id === id && n.user === currentUser);
+  if (!notif) { return res.json({ success: false }) };
+
+  notif.read = true;
+  await db.write();
+  res.json({ success: true });
+});
+
+app.post("/notifications/delete", requireLogin, async (req, res) => {
+  const { id } = req.body;
+  await db.read();
+  db.data.notifications = db.data.notifications.filter(n => n.id !== id);
+  await db.write();
+  res.json({ success: true });
+});
+
+app.post("/notifications/read-all", requireLogin, async (req, res) => {
+  const currentUser = req.user?.username;
+  await db.read();
+
+  db.data.notifications.forEach(n => {
+    if (n.user === currentUser) n.read = true;
+  });
+
+  await db.write();
+  res.json({ success: true });
 });
 
 // -------------------------------------------------

@@ -1382,6 +1382,14 @@ button.action-btn:hover {
     right: 14px;
 }
 
+.notif-row {
+    display: flex;
+    justify-content: space-between;
+    /* back left, mark all right */
+    align-items: center;
+    margin-bottom: 16px;
+}
+
 .notif-actions button {
     margin-left: 8px;
     padding: 8px 16px;
