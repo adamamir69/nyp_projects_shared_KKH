@@ -90,7 +90,6 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "css")));
 app.use(express.static(path.join(__dirname, "images")));
-app.use(express.static(path.join(__dirname, "pages")));
 app.use(verifyUser);
 
 // Initialize DB
@@ -744,6 +743,10 @@ app.get("/activity-log", requireAdmin, async (req, res) => {
   }));
 
   return res.json({ success: true, logs });
+});
+
+app.get("/notifications.html", checkAuth, (req, res) => {
+  res.sendFile(join(__dirname, "pages/notifications.html"));
 });
 
 app.post("/upload-file", upload.single("file"), requireLogin, async (req, res) => {
