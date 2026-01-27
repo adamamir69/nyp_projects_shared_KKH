@@ -25,6 +25,7 @@ and hardware.
 3. run ```npm install``` in the directory of nyp_projects
 
 ## Directory structure
+```
 nyp_projects/<br>
 ├ -- node_modules/<br>
 │ ├ -- example_node_module/<br>
@@ -41,6 +42,7 @@ nyp_projects/<br>
 ├ -- package-lock.json<br>
 ├ -- package.json<br>
 ├ -- README.md<br>
+```
 
 
 ## Limitations
@@ -102,6 +104,7 @@ Ensure that the name in the package.json is unique.
 
 ### Project no longer functions after moving into nyp_projects
 Ensure that the dependencies within the package.json of your project contains version number.
+
 
 
 
