@@ -26,22 +26,22 @@ and hardware.
 
 ## Directory structure
 ```
-nyp_projects/<br>
-├ -- node_modules/<br>
-│ ├ -- example_node_module/<br>
-│   ├ -- HISTORY.md<br>
-│   ├ -- index.js<br>
-│   ├ -- LICENSE<br>
-│   ├ -- package.json<br>
-│   ├ -- README.md<br>
-├ -- projects/<br>
-│   ├ -- example_project/<br>
-│     ├ -- node_modules/<br>
-│     ├ -- package.json<br>
-│     ├ -- README.md<br>
-├ -- package-lock.json<br>
-├ -- package.json<br>
-├ -- README.md<br>
+nyp_projects/
+├ -- node_modules/
+│ ├ -- example_node_module/
+│   ├ -- HISTORY.md
+│   ├ -- index.js
+│   ├ -- LICENSE
+│   ├ -- package.json
+│   ├ -- README.md
+├ -- projects/
+│   ├ -- example_project/
+│     ├ -- node_modules/
+│     ├ -- package.json
+│     ├ -- README.md
+├ -- package-lock.json
+├ -- package.json
+├ -- README.md
 ```
 
 
@@ -104,6 +104,7 @@ Ensure that the name in the package.json is unique.
 
 ### Project no longer functions after moving into nyp_projects
 Ensure that the dependencies within the package.json of your project contains version number.
+
 
 
 
