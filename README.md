@@ -96,12 +96,13 @@ URL-friendly characters:
     0 - 9
     Special characters, like $-_.+!*'(),
 
-### npm error code EINVALIDPACKAGENAME
+### npm error code EDUPLICATEWORKSPACE
 Your project has a similar name that is specified in the package.json file to another project in the projects folder.
 Ensure that the name in the package.json is unique.
 
 ### Project no longer functions after moving into nyp_projects
 Ensure that the dependencies within the package.json of your project contains version number.
+
 
 
 
