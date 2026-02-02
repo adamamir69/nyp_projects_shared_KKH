@@ -1,0 +1,23 @@
+{
+  "name": "full_calendar",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "vite",
+    "preview": "vite preview",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
+    "bootstrap": "^5.3.8",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0"
+  }
+}
