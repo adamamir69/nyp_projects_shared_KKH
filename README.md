@@ -4,6 +4,11 @@ Nanyang Polytechnic projects require to be hosted on the offline
 shared drive of KKH to mitigate the issues derived from the scenario 
 and hardware. 
 
+## Install
+On a fresh installation of nyp_projects,
+1. Download node.js v22.21.1
+2. Extract the folder inside the zip into nyp_projects folder
+   
 ## Quick Startup
 1. Make a copy of the your project and place it into the projects folder of nyp_projects
 2. Open the file named package.json
@@ -104,6 +109,7 @@ Ensure that the name in the package.json is unique.
 
 ### Project no longer functions after moving into nyp_projects
 Ensure that the dependencies within the package.json of your project contains version number.
+
 
 
 
