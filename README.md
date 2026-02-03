@@ -32,6 +32,7 @@ On a fresh installation of nyp_projects,
 ## Directory structure
 ```
 nyp_projects/
+├ -- node-v22.21.1-win-x64
 ├ -- node_modules/
 │ ├ -- example_node_module/
 │   ├ -- HISTORY.md
@@ -109,6 +110,7 @@ Ensure that the name in the package.json is unique.
 
 ### Project no longer functions after moving into nyp_projects
 Ensure that the dependencies within the package.json of your project contains version number.
+
 
 
 
