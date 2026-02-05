@@ -122,7 +122,7 @@ const upload = multer({ storage });
 // Max idle time (30 min)
 // const maxIdleTime = 30 * 60 * 1000;
 
-// authenticate
+// authentication
 async function verifyUser(req, res, next) {
   const username = req.cookies.user4000;
   if (!username) {
@@ -143,14 +143,36 @@ function requireLogin(req, res, next) {
   }
   next();
 }
-// check if role = admin
-function requireAdmin(req, res, next) {
-  if (!req.user) return res.status(401).json({ message: "Login required" });
-  if (req.user.role !== "Administrator") {
-    return res.status(403).json({ message: "Admin access only" });
-  }
-  next();
+
+// authorization
+// permissions
+const allPermissions = [
+  "work_schedule",
+  "file_management",
+  "user_management",
+  "role_management",
+  "view_patients",
+  "manage_patients",
+  "activity_log"
+];
+
+function requirePermission(permission) {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Login required" });
+    }
+
+    await db.read();
+    const role = db.data.roles.find(r => r.name === req.user.role);
+
+    if (!role || !role.permissions.includes(permission)) {
+      return res.status(403).json({ message: "You are not authorized to perform this action" });
+    }
+
+    next();
+  };
 }
+
 
 async function checkAuth(req, res, next) {
   const username = req.cookies.user4000;
@@ -312,6 +334,7 @@ app.get("/status", requireLogin, async (req, res) => {
     activeUser: db.data.activeUser,
     currentUser,
     role,
+    permissions: req.user?.permissions || [],
     allUsers: db.data.users.map((u) => ({
       username: u.username,
       role: u.role,
@@ -344,6 +367,15 @@ app.post("/create-user", requireLogin, async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
+    const roleObj = db.data.roles.find(r => r.name === role);
+    if (!roleObj) {
+      return res.json({
+        success: false,
+        message: "Invalid role selected"
+      });
+    }
+    const permissions = roleObj?.permissions || [];
+
     // Use safeUpdate to acquire lock and add user
     const userCreated = await safeUpdate((data) => {
       if (!data.users.find((u) => u.username === username)) {
@@ -351,6 +383,7 @@ app.post("/create-user", requireLogin, async (req, res) => {
           username,
           password: hashed,
           role,
+          permissions,
           status,
           createdBy,
         });
@@ -395,7 +428,7 @@ app.post("/create-user", requireLogin, async (req, res) => {
 // -------------------------------------------------
 // View All users : For account with Admin Role
 // -------------------------------------------------
-app.get("/users", requireAdmin, async (req, res) => {
+app.get("/users", requirePermission("user_management"), async (req, res) => {
   const currentUser = req.user?.username;
   await db.read();
 
@@ -412,7 +445,7 @@ app.get("/users", requireAdmin, async (req, res) => {
 // Update User Role : For account with Admin Role
 // -------------------------------------------------
 // Update user role
-app.post("/update-user", requireAdmin, async (req, res) => {
+app.post("/update-user", requirePermission("user_management"), async (req, res) => {
   const currentUser = req.user?.username;
   await db.read();
   const { username, role, password } = req.body;
@@ -450,7 +483,7 @@ app.post("/update-user", requireAdmin, async (req, res) => {
 // -------------------------------------------------
 // Delete User : For account with Admin Role
 // -------------------------------------------------
-app.post("/delete-user", requireAdmin, async (req, res) => {
+app.post("/delete-user", requirePermission("user_management"), async (req, res) => {
   const currentUser = req.user?.username;
   const { username } = req.body;
 
@@ -479,7 +512,7 @@ app.post("/delete-user", requireAdmin, async (req, res) => {
 });
 
 // To View User Requests
-app.get("/user-requests", requireAdmin, async (req, res) => {
+app.get("/user-requests", requirePermission("user_management"), async (req, res) => {
   const currentUser = req.user?.username;
   await db.read();
 
@@ -495,7 +528,7 @@ app.get("/user-requests", requireAdmin, async (req, res) => {
 });
 
 // To approve user
-app.post("/approve-user", requireAdmin, async (req, res) => {
+app.post("/approve-user", requirePermission("user_management"), async (req, res) => {
   const adminUser = req.user?.username;
   const { username } = req.body;
   let createdByUser = null;
@@ -522,7 +555,7 @@ app.post("/approve-user", requireAdmin, async (req, res) => {
 });
 
 // To Reject User
-app.post("/reject-user", requireAdmin, async (req, res) => {
+app.post("/reject-user", requirePermission("user_management"), async (req, res) => {
   const { username } = req.body;
   const adminUser = req.user?.username;
   await db.read();
@@ -544,10 +577,16 @@ app.post("/reject-user", requireAdmin, async (req, res) => {
   }
 });
 
+// Get all  permissions
+app.get("/permissions", requireLogin, async (req, res) => {
+  res.json({ permissions: allPermissions });
+});
+
+
 // To Create Roles
-app.post("/create-role", requireAdmin, async (req, res) => {
+app.post("/create-role", requirePermission("role_management"), async (req, res) => {
   const currentUser = req.user?.username;
-  const { role } = req.body;
+  const { role, permissions } = req.body;
 
   await db.read();
 
@@ -557,10 +596,14 @@ app.post("/create-role", requireAdmin, async (req, res) => {
 
   const roleCreated = await safeUpdate((data) => {
     data.roles ||= [];
-    if (data.roles.includes(role)) {
+    if (data.roles.some(r => r.name === role)) {
       return false;
     }
-    data.roles.push(role);
+    data.roles.push({
+      name: role,
+      permissions: Array.isArray(permissions) ? permissions : []
+    });
+
     return true;
   });
   if (roleCreated) {
@@ -573,32 +616,36 @@ app.post("/create-role", requireAdmin, async (req, res) => {
 });
 
 // get roles
-app.get("/roles", async (req, res) => {
+app.get("/roles", requireLogin, async (req, res) => {
   await db.read();
+  const roleName = db.data.roles.map(r => r.name);
   res.json({ roles: db.data.roles });
 });
 
 // Update role
-app.post("/update-role", requireAdmin, async (req, res) => {
+app.post("/update-role", requirePermission("role_management"), async (req, res) => {
   const currentUser = req.user?.username;
-  const { oldRole, newRole } = req.body;
+  const { oldRole, newRole, permissions } = req.body;
   await db.read();
 
-  if (!oldRole || !newRole) {
+  if (!oldRole || !newRole || !Array.isArray(permissions)) {
     return res.json({ success: false, message: "Missing fields" });
   }
   const roleUpdated = await safeUpdate((data) => {
-    if (!data.roles.includes(oldRole)) {
-      return false;
-    }
-    if (data.roles.includes(newRole)) {
-      return false;
-    }
-    data.roles = data.roles.map((r) => (r === oldRole ? newRole : r));
-    data.users.forEach((u) => {
-      if (u.role === oldRole) {
-        u.role = newRole;
-      }
+    // role is object
+    const oldRoleObj = data.roles.find(r => r.name === oldRole);
+    if (!oldRoleObj) return false; // oldRole not found
+    if (data.roles.some(r => r.name === newRole && r.name !== oldRole)) return false;
+
+    // Update role name
+    oldRoleObj.name = newRole;
+
+    // Update role permissions
+    oldRoleObj.permissions = permissions;
+
+    // Update all users with the old role
+    data.users.forEach(u => {
+      if (u.role === oldRole) u.role = newRole;
     });
     return true;
   });
@@ -613,7 +660,7 @@ app.post("/update-role", requireAdmin, async (req, res) => {
   }
 });
 
-app.post("/delete-role", requireAdmin, async (req, res) => {
+app.post("/delete-role", requirePermission("role_management"), async (req, res) => {
   const currentUser = req.user?.username;
   const { role } = req.body;
 
@@ -628,10 +675,10 @@ app.post("/delete-role", requireAdmin, async (req, res) => {
     if (data.users.some((u) => u.role === role)) {
       return false;
     }
-    if (!data.roles.includes(role)) {
-      return false;
-    }
-    data.roles = data.roles.filter((r) => r !== role);
+    const roleIndex = data.roles.findIndex((r) => r.name === role);
+    if (roleIndex === -1) return false;
+
+    data.roles.splice(roleIndex, 1);
     return true;
   });
   if (roleDeleted) {
@@ -646,7 +693,7 @@ app.post("/delete-role", requireAdmin, async (req, res) => {
 });
 
 // add patient
-app.post("/create-patient", requireAdmin, async (req, res) => {
+app.post("/create-patient", requirePermission("manage_patients"), async (req, res) => {
   const currentUser = req.user?.username;
   await db.read();
   const userObj = db.data.users.find((u) => u.username === currentUser);
@@ -688,14 +735,14 @@ app.post("/create-patient", requireAdmin, async (req, res) => {
 });
 
 // get patients
-app.get("/patients", requireAdmin, async (req, res) => {
+app.get("/patients", requirePermission("view_patients"), async (req, res) => {
   const currentUser = req.user?.username;
   await db.read();
   res.json({ success: true, patients: db.data.patients });
 });
 
 // delete patient
-app.delete("/patients/:id", requireAdmin, async (req, res) => {
+app.delete("/patients/:id", requirePermission("manage_patients"), async (req, res) => {
   const currentUser = req.user?.username;
   const id = Number(req.params.id);
   await db.read();
@@ -714,7 +761,7 @@ app.delete("/patients/:id", requireAdmin, async (req, res) => {
 });
 
 // work schedule
-app.get("/work-schedule", requireLogin, async (req, res) => {
+app.get("/work-schedule", requirePermission("work_schedule"), async (req, res) => {
   const currentUser = req.user?.username;
   await db.read();
   if (!currentUser) {
@@ -731,7 +778,7 @@ app.get("/work-schedule", requireLogin, async (req, res) => {
 });
 
 // display activity log
-app.get("/activity-log", requireAdmin, async (req, res) => {
+app.get("/activity-log", requirePermission("activity_log"), async (req, res) => {
   const currentUser = req.user?.username;
   await db.read();
 
@@ -749,7 +796,7 @@ app.get("/notifications.html", checkAuth, (req, res) => {
   res.sendFile(join(__dirname, "pages/notifications.html"));
 });
 
-app.post("/upload-file", upload.single("file"), requireLogin, async (req, res) => {
+app.post("/upload-file", upload.single("file"), requirePermission("file_management"), async (req, res) => {
   try {
     await db.read();
     const { title, desc } = req.body;
@@ -784,19 +831,19 @@ app.post("/upload-file", upload.single("file"), requireLogin, async (req, res) =
   }
 });
 
-app.get("/files", requireLogin, async (req, res) => {
+app.get("/files", requirePermission("file_management"), async (req, res) => {
   await db.read();
   res.json({ files: db.data.files });
 });
 
-app.get("/recent-files", requireLogin, async (req, res) => {
+app.get("/recent-files", requirePermission("file_management"), async (req, res) => {
   await db.read();
   const recent = [...db.data.files].sort((a, b) => b.date - a.date).slice(0, 5);
 
   res.json({ files: recent });
 });
 
-app.get("/download-file/:id", requireLogin, async (req, res) => {
+app.get("/download-file/:id", requirePermission("file_management"), async (req, res) => {
   await db.read();
 
   const file = db.data.files.find((f) => f.id === req.params.id);
@@ -805,7 +852,7 @@ app.get("/download-file/:id", requireLogin, async (req, res) => {
   res.download(path.join("uploads", file.filename));
 });
 
-app.post("/delete-file", requireLogin, async (req, res) => {
+app.post("/delete-file", requirePermission("file_management"), async (req, res) => {
   await db.read();
   const { id } = req.body;
   let fileDeleted = false;

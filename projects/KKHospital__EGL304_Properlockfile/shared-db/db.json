@@ -4,36 +4,66 @@
       "username": "Admin",
       "password": "$2b$10$9cYvbYxKfDZZjYwS1Vg18uqZPhJWHdhK/dgVTW8G7o.5AP0SO2N5a",
       "role": "Administrator",
+      "permissions": [
+        "work_schedule",
+        "file_management",
+        "user_management",
+        "role_management",
+        "manage_patients",
+        "view_patients",
+        "activity_log"
+      ],
       "status": "active"
     },
     {
       "username": "Nurse1",
       "password": "$2b$10$CwDPVasEAhLG.MerGAzbq.K8T5s58W1cg3uM8kbvkI6PTRiFEHGBe",
-      "role": "User",
+      "role": "Nurse",
+      "permissions": [
+        "work_schedule",
+        "file_management",
+        "view_patients"
+      ],
       "status": "active"
     },
     {
       "username": "Nurse2",
       "password": "$2b$10$k3wriSDE92EYj3b2L.Jk2.hA8JGz3rNFVYGPd2rzTmKZea6zprx5a",
       "role": "User",
+      "permissions": [
+        "work_schedule",
+        "file_management"
+      ],
       "status": "active"
     },
     {
       "username": "Admin2",
       "password": "$2b$10$49vfdYPX1XFyW1klpi98LuAzpxihEzgDhQ6/FZYVRPQYroI2zZhGO",
       "role": "User",
+      "permissions": [
+        "work_schedule",
+        "file_management"
+      ],
       "status": "active"
     },
     {
       "username": "Xanthe",
       "password": "$2b$10$GYVW5prmUWHiceXGuvhZT.kVQX57I7wX17J/avfX5CkT3SVYhB8Ii",
       "role": "User",
+      "permissions": [
+        "work_schedule",
+        "file_management"
+      ],
       "status": "active"
     },
     {
       "username": "Thi",
       "password": "$2b$10$70RsR1VLLphnWl95k8.ppeC69NXYVe8qPeCHLpHuYtxR/qucJPaAW",
       "role": "User",
+      "permissions": [
+        "work_schedule",
+        "file_management"
+      ],
       "status": "active",
       "createdBy": "Nurse1"
     },
@@ -41,6 +71,14 @@
       "username": "test10",
       "password": "$2b$10$td29HP/EuV9TOrUdvPhm.OtAPTLLBCgiXluJJmT9pBb.AvW48TrFC",
       "role": "Administrator",
+      "permissions": [
+        "work_schedule",
+        "file_management",
+        "user_management",
+        "role_management",
+        "patient_management",
+        "activity_log"
+      ],
       "status": "active",
       "createdBy": "Admin"
     },
@@ -48,6 +86,10 @@
       "username": "testtest",
       "password": "$2b$10$jaFbH80lLwT2Tz0yo6qMLunC1MmNlCBAl2fVEEpeXvNJP4..bdn/G",
       "role": "User",
+      "permissions": [
+        "work_schedule",
+        "file_management"
+      ],
       "status": "active",
       "createdBy": "Admin"
     },
@@ -55,6 +97,10 @@
       "username": "test100",
       "password": "$2b$10$K4vxBGXXqhCeeKQSBdAgK.QEPVIydqjdLc01tQR0oDoWGF7ZYkGB2",
       "role": "User",
+      "permissions": [
+        "work_schedule",
+        "file_management"
+      ],
       "status": "active",
       "createdBy": "Admin"
     },
@@ -331,9 +377,58 @@
     }
   ],
   "roles": [
-    "User",
-    "Administrator",
-    "Staff",
-    "Doctor"
+    {
+      "name": "Administrator",
+      "permissions": [
+        "work_schedule",
+        "file_management",
+        "user_management",
+        "role_management",
+        "manage_patients",
+        "view_patients",
+        "activity_log"
+      ]
+    },
+    {
+      "name": "User",
+      "permissions": [
+        "work_schedule",
+        "file_management"
+      ]
+    },
+    {
+      "name": "Nurse",
+      "permissions": [
+        "work_schedule",
+        "file_management",
+        "view_patients"
+      ]
+    }
+  ],
+  "permissions": [
+    {
+      "key": "work_schedule",
+      "label": "Work Schedule"
+    },
+    {
+      "key": "file_management",
+      "label": "File Management"
+    },
+    {
+      "key": "user_management",
+      "label": "User Management"
+    },
+    {
+      "key": "role_management",
+      "label": "Role Management"
+    },
+    {
+      "key": "patient_management",
+      "label": "Patient Management"
+    },
+    {
+      "key": "activity_log",
+      "label": "Activity Log"
+    }
   ]
 }

@@ -221,6 +221,12 @@
             <label>Role Name</label>
             <input id="new-role-name" required>
           </div>
+
+          <div class="input-group">
+            <label>Permissions</label>
+            <div id="create-permissions-container"></div>
+          </div>
+
           <button class="action-btn">Create Role</button>
         </form>
 
@@ -241,17 +247,20 @@
 
         <form id="edit-role-form">
           <input type="hidden" id="old-role-name">
-
           <div class="input-group">
             <label>New Role Name</label>
             <input type="text" id="edit-role-new-name" required>
           </div>
-
+          <div class="input-group">
+            <label>Permissions</label>
+            <div id="edit-permissions-container"></div>
+          </div>
           <div class="modal-buttons">
             <button type="submit" class="btn-save">Save</button>
             <button type="button" class="btn-cancel" onclick="closeEditRole()">Cancel</button>
           </div>
         </form>
+
       </div>
     </div>
 
@@ -505,23 +514,34 @@
         try {
           const res = await fetch("/status");
           const data = await res.json();
-          const role = data.role;
+          const perms = data.permissions || [];
 
-          if (role !== "Administrator") {
-            document.querySelector(".create-patient-form").style.display = "none";
-            const tbody = document.getElementById("patients-list");
-            if (tbody) tbody.innerHTML = "";
+          const patientForm = document.getElementById("add-patient-form");
+          const tbody = document.getElementById("patients-list");
 
-            showPopup("Unauthorized. Only admins can access patient records", "error");
-          } else {
-            document.querySelector(".create-patient-form").style.display = "block";
+          const hasView = perms.includes("view_patients");     // can see patients
+          const hasManage = perms.includes("manage_patients"); // can add/delete patients
+
+          // hide the form (add patient) if user cannot manage
+          if (patientForm) patientForm.style.display = hasManage ? "block" : "none";
+
+          // load patients only if user can view
+          if (hasView) {
             loadPatients();
+          } else {
+            if (tbody) tbody.innerHTML = "";
+            showPopup("Unauthorized. You do not have permission to view patients.", "error");
+            return;
           }
+
         } catch (err) {
           console.error("Error checking patient access:", err);
+          showPopup("Failed to check permissions.", "error");
         }
       });
     }
+
+
 
     // Create user
     document.querySelector(".create-user-form").addEventListener("submit", async e => {
@@ -533,7 +553,7 @@
       if (password.length < 8) { showPopup("Password must be at least 8 characters long.", "error"); return; }
       showLoading("Creating user...");
       try {
-        const res = await fetch("/create-user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password, role }) });
+        const res = await fetch("/create-user", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ username, password, role }) });
         const data = await res.json();
         hideLoading();
         if (data.success) {
@@ -718,7 +738,7 @@
       renderPatients(filtered);
     });
 
-    applyRolePermissions();
+
 
     // display work schedule
     async function loadWorkSchedule() {
@@ -944,20 +964,108 @@
       } else showPopup("Error deleting file", "error");
     }
 
-
-    async function applyRolePermissions() {
-      const res = await fetch("/status");
+    // create role permissions dropdown
+    async function loadPermissions(containerId, preSelected = []) {
+      const res = await fetch("/permissions");
       const data = await res.json();
+      const permissions = data.permissions || [];
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
 
-      if (data.role !== "Administrator") {
-        // document.querySelector('[data-tab="create-user"]').style.display = "none";
-        document.querySelector('[data-tab="view-users"]').style.display = "none";
-        document.querySelector('[data-tab="activity-log"]').style.display = "none";
-        document.querySelector('[data-tab="users-request"]').style.display = "none";
-        document.querySelector('[data-tab="role-management"]').style.display = "none";
+      permissions.forEach(p => {
+        const label = document.createElement("label");
+        label.innerHTML = `
+      <input type="checkbox" name="permissions" value="${p}" ${preSelected.includes(p) ? "checked" : ""}>
+      ${p.replace("_", " ").toUpperCase()}
+    `;
+        container.appendChild(label);
+        container.appendChild(document.createElement("br"));
+      });
+    }
+
+    loadPermissions("create-permissions-container");
+
+    // edit role permissions dropdown (include prev permissions)
+    function showEditRoleModal(roleName, rolePermissions = []) {
+      const modal = document.getElementById("edit-role-modal");
+      modal.style.display = "flex";
+
+      // ✅ Set hidden old role name
+      document.getElementById("old-role-name").value = roleName;
+
+      // ✅ Pre-fill new role name input
+      document.getElementById("edit-role-new-name").value = roleName;
+
+      // ✅ Load checkboxes with permissions
+      loadPermissions("edit-permissions-container", rolePermissions);
+    }
+
+
+
+
+
+    async function applyPermissions() {
+      try {
+        const res = await fetch("/status");
+        const data = await res.json();
+        const perms = data.permissions || [];
+
+        // map HTML data-tab to permission names
+        const tabPermissionMap = {
+          "schedule": "work_schedule",
+          "shared-files": "file_management",
+          "upload-file": "file_management",
+          "add-patient": "view_patients",
+          "view-users": "user_management",
+          "users-request": "user_management",
+          "role-management": "role_management",
+          "activity-log": "activity_log"
+        };
+
+        const alwaysVisibleTabs = ["create-user"];
+
+        // show / hide tabs
+        document.querySelectorAll(".tab-bar > .tab-btn, .tab-bar > .dropdown-tab").forEach(tab => {
+          if (tab.classList.contains("dropdown-tab")) {
+            // dropdown tabs
+            const subTabs = tab.querySelectorAll(".sub-tab-btn");
+            let anyVisible = false;
+            subTabs.forEach(sub => {
+              const target = sub.dataset.tab;
+              if (alwaysVisibleTabs.includes(target)) {
+                sub.style.display = "block";
+                anyVisible = true;
+              } else {
+                const requiredPerm = tabPermissionMap[target];
+                const visible = requiredPerm ? perms.includes(requiredPerm) : true;
+                sub.style.display = visible ? "block" : "none";
+                if (visible) anyVisible = true;
+              }
+            });
+            tab.style.display = anyVisible ? "inline-block" : "none";
+          } else {
+            // regular tab
+            const target = tab.dataset.tab;
+            if (alwaysVisibleTabs.includes(target)) {
+              tab.style.display = "inline-block";
+            } else {
+              const requiredPerm = tabPermissionMap[target];
+              tab.style.display = requiredPerm && perms.includes(requiredPerm) ? "inline-block" : "none";
+            }
+          }
+        });
+
+        // first page that user will see
+        const firstVisible = Array.from(document.querySelectorAll(".tab-bar > .tab-btn"))
+          .find(t => t.style.display !== "none");
+        if (firstVisible) firstVisible.click();
+
+      } catch (err) {
+        console.error("Error applying role permissions:", err);
       }
     }
-    loadPatients();
+    applyPermissions();
+
 
     // activity log
     async function loadActivityLog() {
@@ -1038,6 +1146,7 @@
         // Remove active from BOTH main tabs and sub-tabs
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
         document.querySelectorAll(".sub-tab-btn").forEach(b => b.classList.remove("active"));
+        btn.closest(".dropdown-tab").querySelector(".dropdown-only").classList.add("active"); ///////////////////////////////////////////
 
         // Highlight selected sub-tab
         btn.classList.add("active");
@@ -1150,28 +1259,41 @@
       e.preventDefault();
 
       const role = document.getElementById("new-role-name").value.trim();
-      if (!role) return;
-      showLoading();
-      const res = await fetch("/create-role", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role })
-      });
+      const checkboxes = document.querySelectorAll('#create-permissions-container input[name="permissions"]:checked');
+      const permissions = Array.from(checkboxes).map(box => box.value);
 
-      const data = await res.json();
-      hideLoading();
-      if (data.success) {
-        showPopup("Role created.", "success");
-        e.target.reset();
-        loadRoles();
-      } else {
-        showPopup(data.message, "error");
+      if (!role) return showPopup("Please enter a role name", "error");
+      if (permissions.length === 0) return showPopup("Please select at least one permission", "error");
+
+      showLoading("Creating role...");
+
+      try {
+        const res = await fetch("/create-role", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, permissions })
+        });
+
+        const data = await res.json();
+        hideLoading();
+
+        if (data.success) {
+          showPopup("Role created successfully!", "success");
+          document.getElementById("create-role-form").reset();
+          loadRoles();
+          loadPermissions("create-permissions-container"); // refresh checkbox list
+        } else {
+          showPopup("Error: " + data.message, "error");
+        }
+      } catch (err) {
+        hideLoading();
+        showPopup("Server error: " + err.message, "error");
       }
     });
 
     // async function loadRoles() {
-    //   const res = await fetch("/roles");
-    //   const data = await res.json();
+    // const res = await fetch("/roles");
+    // const data = await res.json();
 
     //   const ul = document.getElementById("roles-list");
     //   ul.innerHTML = "";
@@ -1181,39 +1303,38 @@
     //     ul.appendChild(li);
     //   });
     // }
-
     async function loadRoles() {
       const res = await fetch("/roles");
       const data = await res.json();
-
       const ul = document.getElementById("roles-list");
       ul.innerHTML = "";
 
       data.roles.forEach(role => {
+
         const li = document.createElement("li");
         li.className = "role-item";
 
-        const isDefault = ["Administrator", "User"].includes(role);
+        const isDefault = ["Administrator", "User"].includes(role.name);
 
         li.innerHTML = `
-              <span class="role-name">${role}</span>
-
-              <div class="role-actions">
-                  ${isDefault
+          <span class="role-name">${role.name}</span>
+          <div class="role-actions">
+            ${isDefault
             ? `<span class="role-badge">Default</span>`
             : `
-                      <button class="btn-edit" onclick="editRole('${role}')">Edit</button>
-                      <button class="btn-delete-role" onclick="deleteRole('${role}')">Delete</button>
-                    `
-          }
-              </div>
-          `;
+                  <button class="btn-edit" onclick='showEditRoleModal("${role.name}", ${JSON.stringify(role.permissions)})'>Edit</button>
+                  <button class="btn-delete-role" onclick="deleteRole('${role.name}')">Delete</button>
+                `}
+          </div>
+        `;
 
         ul.appendChild(li);
       });
     }
 
+
     function editRole(role) {
+      document.getElementById("edit-role-modal").style.display = "flex";
       document.getElementById("old-role-name").value = role;
       document.getElementById("edit-role-new-name").value = role;
 
@@ -1224,33 +1345,88 @@
       document.getElementById("edit-role-modal").style.display = "none";
     }
 
-    document.getElementById("edit-role-form").addEventListener("submit", async (e) => {
+    // document.getElementById("edit-role-form").addEventListener("submit", async (e) => {
+    //   e.preventDefault();
+
+    //   const oldRole = document.getElementById("old-role-name").value;
+    //   const newRole = document.getElementById("edit-role-new-name").value.trim();
+    //   const checkboxes = container.querySelectorAll('input[name="permissions"]:checked');
+    //   const permissions = Array.from(checkboxes).map(box => box.value);
+
+    //   if (!newRole || newRole === oldRole) return;
+    //   if (permissions.length === 0) return;
+
+    //   showLoading();
+    //   const res = await fetch("/update-role", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({ oldRole, newRole, permissions })
+    //   });
+
+    //   const data = await res.json();
+    //   hideLoading();
+
+    //   if (data.success) {
+    //     showPopup("Role updated successfully", "success");
+    //     closeEditRole();
+    //     loadRoles();
+    //     loadRoleOptions();
+    //     applyPermissions();
+    //   } else {
+    //     showPopup(data.message || "Failed to update role", "error");
+    //   }
+    // });
+
+
+    // Edit Role Form Submission
+    document.getElementById("edit-role-form").addEventListener("submit", async e => {
       e.preventDefault();
 
-      const oldRole = document.getElementById("old-role-name").value;
+      // Get values from the form
+      const oldRole = document.getElementById("old-role-name").value.trim();
       const newRole = document.getElementById("edit-role-new-name").value.trim();
 
-      if (!newRole || newRole === oldRole) return;
+      // Gather checked permissions into an array
+      const permissions = Array.from(
+        document.querySelectorAll("#edit-permissions-container input[name='permissions']:checked")
+      ).map(cb => cb.value);
 
-      showLoading();
-      const res = await fetch("/update-role", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oldRole, newRole })
-      });
+      // Basic validation
+      if (!oldRole || !newRole || !permissions.length) {
+        return alert("Please fill in all fields and select at least one permission.");
+      }
 
-      const data = await res.json();
-      hideLoading();
+      try {
+        // Show loading overlay if you have one
+        showLoading("Updating role...");
 
-      if (data.success) {
-        showPopup("Role updated successfully", "success");
-        closeEditRole();
-        loadRoles();
-        loadRoleOptions();
-      } else {
-        showPopup(data.message || "Failed to update role", "error");
+        const res = await fetch("/update-role", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ oldRole, newRole, permissions }),
+          credentials: "include" // optional, if you need cookies
+        });
+
+        const data = await res.json();
+        hideLoading();
+
+        if (data.success) {
+          showPopup("Role updated successfully", "success");
+          closeEditRole(); // your function to close the modal
+          loadRoles(); // reload roles list if you have a function for that
+        } else {
+          alert("Error: " + data.message);
+        }
+
+      } catch (err) {
+        hideLoading();
+        console.error(err);
+        alert("Server error: " + err.message);
       }
     });
+
+
+
 
 
     async function deleteRole(role) {
@@ -1290,8 +1466,8 @@
 
       data.roles.forEach(role => {
         const opt = document.createElement("option");
-        opt.value = role;
-        opt.textContent = role;
+        opt.value = role.name;
+        opt.textContent = role.name;
         select.appendChild(opt);
       });
     }
@@ -1307,10 +1483,10 @@
 
       data.roles.forEach(role => {
         const opt = document.createElement("option");
-        opt.value = role;
-        opt.textContent = role;
+        opt.value = role.name;
+        opt.textContent = role.name;
 
-        if (role === selectedRole) {
+        if (role.name === selectedRole) {
           opt.selected = true; // ⭐ pre-select current role
         }
 

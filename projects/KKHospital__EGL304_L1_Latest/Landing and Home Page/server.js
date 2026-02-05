@@ -568,7 +568,7 @@ app.post("/create-patient", requireAdmin, async (req, res) => {
 });
 
 // get patients
-app.get("/patients", requireAdmin, async (req, res) => {
+app.get("/patients", requireLogin, async (req, res) => {
     const currentUser = req.user?.username;
     await db.read();
     res.json({ success: true, patients: db.data.patients });

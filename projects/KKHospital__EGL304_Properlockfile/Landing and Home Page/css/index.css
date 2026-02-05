@@ -457,6 +457,13 @@ button.action-btn:hover {
     text-align: center;
 }
 
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+
 .modal-content .input-group {
     text-align: left;
     margin-bottom: 18px;
@@ -473,6 +480,8 @@ button.action-btn:hover {
 .modal-content input,
 .modal-content select {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 10px 12px;
     border-radius: 8px;
     border: 1px solid #cfcfcf;
@@ -1461,4 +1470,25 @@ button.action-btn:hover {
     background-color: #218838;
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(33, 136, 56, 0.25);
+}
+
+#edit-permissions-container {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+#edit-permissions-container label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 6px;
+}
+
+#edit-permissions-container input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    vertical-align: middle;
+    transform: translateY(1px);
 }
